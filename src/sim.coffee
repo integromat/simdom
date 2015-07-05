@@ -8,6 +8,7 @@
 
 do (window = window ? null) ->
 	NODE = not window?
+	JQUERY = window?.jQuery?
 	TEMP_ID = 0
 	TAGS = ['a', 'article', 'aside', 'b', 'blockquote', 'body', 'button', 'br', 'canvas', 'dd', 'div', 'dl', 'dt', 'em', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'input', 'i', 'img', 'label', 'legend', 'li', 'nav', 'ol', 'optgroup', 'option', 'p', 'pre', 'section', 'select', 'small', 'span', 'strong', 'textarea', 'table', 'title', 'tr', 'th', 'td', 'ul']
 	SVG_TAGS = ['defs', 'g', 'linearGradient', 'path', 'radialGradient', 'stop', 'svg']
@@ -48,7 +49,7 @@ do (window = window ? null) ->
 			
 			return new defaultKlass selector
 		
-		if window.jQuery? and selector instanceof window.jQuery then return new SIMArray selector.toArray()
+		if JQUERY and selector instanceof window.jQuery then return new SIMArray selector.toArray()
 		if window.Window? and selector instanceof window.Window then return new SIMWindow selector
 		
 		null
@@ -400,6 +401,10 @@ do (window = window ? null) ->
 			elm.emit arguments... for elm in @
 			@
 		
+		empty: ->
+			elm.empty() for elm in @
+			@
+		
 		filter: (selectors) ->
 			arr = new SIMArray
 			if not selectors?
@@ -468,6 +473,13 @@ do (window = window ? null) ->
 			
 			arr
 		
+		nextAll: ->
+			arr = new SIMArray
+			for elm in @
+				arr.push elm.nextAll arguments...
+			
+			arr
+		
 		not: (selectors) ->
 			arr = new SIMArray
 			if not selectors?
@@ -512,6 +524,13 @@ do (window = window ? null) ->
 			arr = new SIMArray
 			for elm in @
 				arr.push elm.prev arguments...
+			
+			arr
+		
+		prevAll: ->
+			arr = new SIMArray
+			for elm in @
+				arr.push elm.prevAll arguments...
 			
 			arr
 		
@@ -610,7 +629,7 @@ do (window = window ? null) ->
 			if tag instanceof SIMElement
 				super tag.__dom
 			
-			else if 'undefined' isnt typeof jQuery and tag instanceof jQuery
+			else if JQUERY and tag instanceof jQuery
 				super tag[0]
 			
 			else if tag.nodeName
@@ -642,6 +661,7 @@ do (window = window ? null) ->
 			next?.call @
 		
 		addClass: (names) ->
+			if 'string' isnt typeof names then return @
 			classes = if @__dom.className.length is 0 then [] else @__dom.className.split ' '
 			
 			for name in names.split ' '
@@ -1250,6 +1270,11 @@ do (window = window ? null) ->
 		else
 			new SIMSVGElement arguments...
 	
+	sim.one = ->
+		res = sim arguments...
+		if res instanceof SIMArray then res = res.first()
+		res
+	
 	sim.array = (args...) ->
 		if args.length is 0 then return new SIMArray
 		if args.length is 1 then return new SIMArray args[0]
@@ -1302,25 +1327,25 @@ do (window = window ? null) ->
 		
 		# jQuery integration
 		
-		if window.jQuery
+		if JQUERY
 			sim.ajax = jQuery.ajax.bind jQuery
-		
+			
 		for name in JQUERY_POLYFILLS
 			do (name) ->
 				SIMElement::[name] = ->
-					if not window.jQuery?
+					if not JQUERY?
 						throw new Error "jQuery is required in order to use '#{name}' method."
 					
 					window.jQuery(@__dom)[name] arguments...
 		
 		SIMBase::toJquery = ->
-			if not window.jQuery?
+			if not JQUERY?
 				throw new Error "jQuery is required in order to use '#{name}' method."
 			
 			window.jQuery @__dom
 		
 		SIMArray::toJquery = ->
-			if not window.jQuery?
+			if not JQUERY?
 				throw new Error "jQuery is required in order to use '#{name}' method."
 			
 			window.jQuery (elm.__dom for elm in @)
