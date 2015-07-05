@@ -1,0 +1,49 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mocha Tests</title>
+  <link rel="stylesheet" href="../../node_modules/mocha/mocha.css" />
+</head>
+<body>
+  <div id="mocha"></div>
+  <script type="text/javascript">
+	  window.require = function(pkg) {
+		  if (pkg === 'assert') {
+			  return {
+				  equal: function(a, b) {
+					  if (a != b) {
+						var err = new Error("Assertion:\nGot: '"+ a +"'\nExp: '"+ b +"'\n");
+						err.actial = a;
+						err.expected = b;
+						err.operator = '=='
+						throw err;
+					  }
+				  },
+				  strictEqual: function(a, b) {
+					  if (a !== b) {
+						var err = new Error("Assertion:\nGot: '"+ a +"'\nExp: '"+ b +"'\n");
+						err.actial = a;
+						err.expected = b;
+						err.operator = '==='
+						throw err;
+					  }
+				  },
+				  ok: function(a) {
+					  return a !== false && a !== null && a !== undefined;
+				  }
+			  }
+		  }
+	  }
+  </script>
+  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+  <script src="../../node_modules/mocha/mocha.js"></script>
+  <script src="../../lib/sim.js"></script>
+  <script>mocha.setup('bdd')</script>
+  <script src="test.js"></script>
+  <script>
+    mocha.checkLeaks();
+    mocha.globals(['jQuery']);
+    mocha.run();
+  </script>
+</body>
+</html>

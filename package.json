@@ -1,0 +1,34 @@
+{
+	"author": {
+		"name": "Patrik Simek",
+		"url": "https://patriksimek.cz"
+	},
+	"name": "simdom",
+	"description": "JavaScript library for CoffeeScript developers.",
+	"keywords": [
+		"dom",
+		"library",
+		"jquery",
+		"browser"
+	],
+	"version": "0.1.0",
+	"main": "lib/sim.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/integromat/simdom"
+	},
+	"license": "MIT",
+	"dependencies": {},
+	"devDependencies": {
+		"coffee-script": "^1.9.3",
+		"mocha": "^2.1.0"
+	},
+	"engines": {
+		"node": ">=0.10"
+	},
+	"scripts": {
+		"prepublish": "coffee -c -o ./lib ./src",
+		"compile": "coffee -c -o ./lib ./src",
+		"test": "node_modules/.bin/mocha test"
+	}
+}

@@ -1,0 +1,1 @@
+global.sim = require '../src/sim'
