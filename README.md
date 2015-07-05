@@ -1,8 +1,15 @@
 # simDOM
 
-JavaScript library for CoffeeScript developers.
+JavaScript library for CoffeeScript developers. This library is work in progress.
 
 [![NPM Version][npm-image]][npm-url] [![Travis CI][travis-image]][travis-url]
+
+Notes
+- ie 9+
+- less than 10kB minified and gzipped
+- uses native events
+- understands jQuery
+- `sim('body') is sim('body')`
 
 ## Installation
 
@@ -27,7 +34,7 @@ sim(document.body).do ->
 		@p().text "Thanks for visiting."
 ```
 
-## Server-side Usage
+### Server-side Usage
 
 ```coffeescript
 sim = require 'simdom'
@@ -45,10 +52,51 @@ Results in:
 <div class="hello"><span class="world">Sample</span></div>
 ```
 
-## Notes
+## Documentation
 
-```coffee
-sim('body') is sim('body') # true
+### Selectors
+
+```coffeescript
+# string
+sim 'div' # returns SIMArray of all divs on the page
+sim '#id' # returns SIMElement of that id or null
+
+# html element
+sim document.body # return SIMElement of body
+sim document.getElementById 'id' # return SIMElement of that id or null
+sim document.getElementsByClassName 'class' # return SIMArray of all elements with that class
+
+# special
+sim.one <selector> # alway return result as SIMElement or null
+sim.array <selector> # always return result as SIMArray
+```
+
+### DOM Creation
+
+```coffeescript
+sim.div() # <div></div>
+sim.div '.style' # <div class="style"></div>
+sim.div '#uid' # <div id="uid"></div>
+dim.div '[data-attr="value"]' # <div data-attr="value"></div>
+dim.div ':disabled' # <div disabled></div>
+dim.div '.style.foo#uid[data-attr="value"]:disabled' # <div class="style foo" id="uid" data-attr="value" disabled></div>
+```
+
+#### Nesting
+
+```coffeescript
+sim.div ->
+	@div '.style', ->
+		@div '#uid', ->
+			@div '[data-attr="value"]', ->
+				@div ':disabled', ->
+					@text 'Hello
+```
+
+Results in:
+
+```html
+<div><div class="style"><div id="uid"><div data-attr="value"><div disabled>Hello</div></div></div></div></div>
 ```
 
 <a name="license" />
