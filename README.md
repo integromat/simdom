@@ -13,7 +13,7 @@ JavaScript library for CoffeeScript developers.
 ## Usage
 
 ```coffee
-sim(body).do ->
+sim(document.body).do ->
 	@header ->
 		@h1().text "Welcome to my Blog"
 	
@@ -54,7 +54,7 @@ sim('body') is sim('body') # true
 <a name="license" />
 ## License
 
-Copyright (c) 2015 Integromat LLC
+Copyright (c) 2015 Integromat
 
 The MIT License
 
