@@ -234,9 +234,17 @@ do (window = window ? null) ->
 			
 			if condition.attribute.length
 				fulfilled = true
-				for attr in condition.attribute when attr.value isnt elm.attr attr.name
-					fulfilled = false
-					break
+				for attr in condition.attribute
+					if attr.value?
+						if attr.value isnt elm.attr attr.name
+							fulfilled = false
+							break
+					
+					else
+						# only check attribute existence
+						if not elm.__dom.hasAttribute attr.name
+							fulfilled = false
+							break
 				
 				if not fulfilled then continue
 			
@@ -875,7 +883,7 @@ do (window = window ? null) ->
 			@
 		
 		inspect: ->
-			"[SIMElement #{@__dom.nodeName.toLowerCase()}]"
+			"[SIMElement #{@__dom.nodeName.toLowerCase()}#{if @__dom.id then "##{@__dom.id}" else ""}]"
 		
 		is: (selector) ->
 			matches @, parse selector
@@ -1182,6 +1190,7 @@ do (window = window ? null) ->
 		prependTo: SIMElement::prependTo
 		insertBefore: SIMElement::insertBefore
 		insertAfter: SIMElement::insertAfter
+		inspect: -> "[SIMText '#{@__dom.textContent}']"
 		is: -> false
 		remove: SIMElement::remove
 		text: SIMElement::text
@@ -1189,21 +1198,25 @@ do (window = window ? null) ->
 	class SIMDocument extends SIMBase
 		emit: SIMElement::emit
 		height: -> document.documentElement.offsetHeight
+		inspect: -> "[SIMDocument]"
 		on: SIMElement::on
 		once: SIMElement::once
 		off: SIMElement::off
+		toString: -> @__dom.documentElement.outerHTML
 		trigger: SIMElement::trigger
 		width: -> document.documentElement.offsetWidth
 	
 	class SIMWindow extends SIMBase
 		emit: SIMElement::emit
 		height: -> document.documentElement.clientHeight
+		inspect: -> "[SIMWindow]"
 		on: SIMElement::on
 		once: SIMElement::once
 		off: SIMElement::off
 		open: -> window.open arguments...
 		scrollLeft: -> window.scrollX
 		scrollTop: -> window.scrollY
+		toString: -> @inspect()
 		trigger: SIMElement::trigger
 		width: -> document.documentElement.clientWidth
 	

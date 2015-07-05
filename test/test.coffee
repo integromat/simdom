@@ -28,6 +28,7 @@ assert.compare = (a, b) ->
 		err.operator = '=='
 		throw err
 
+NODE = not (window ? null)?
 OBJECT = {}
 
 describe 'basic test suite', ->
@@ -168,12 +169,20 @@ describe 'basic test suite', ->
 		dom.remove()
 	
 	it 'should query dom #2', ->
+		if NODE then return @skip() # not implemented yet
+		
 		i = null
 		dom = sim.div ->
 			@div ->
-				i = @i()
+				i = @i ->
+					@attr 'title', 'text'
 		
 		assert.ok dom.contains i
+		
+		assert.compare dom.find('[title]'), '<i title="text"></i>'
+		assert.compare dom.find('[title="text"]'), '<i title="text"></i>'
+		assert.compare dom.find('[titlex]'), ''
+		assert.compare dom.find('[title="textx"]'), ''
 	
 	it 'should handle events #1', (done) ->
 		tick = false

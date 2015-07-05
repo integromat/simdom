@@ -225,11 +225,24 @@ class Element extends Node
 		elm = super deep
 		elm.attributes = __clone @attributes
 		elm
+	
+	inspect: ->
+		"[#{@constructor.name}#{if @id then " ##{@id}" else ""}]"
+	
+	querySelector: (selector) ->
+		__querySelector @, selector
+	
+	querySelectorAll: (selector) ->
+		__querySelectorAll @, selector
 
 Object.defineProperties Element.prototype,
 	className:
 		get: -> @attributes['class'] ? ''
 		set: (value) -> @attributes['class'] = value
+	
+	id:
+		get: -> @attributes['id'] ? ''
+		set: (value) -> @attributes['id'] = value
 
 	innerHTML:
 		get: -> (child.outerHTML for child in @childNodes).join ''
@@ -314,7 +327,7 @@ Object.defineProperties Text.prototype,
 
 # --------
 
-class Document
+class Document extends Node
 	constructor: ->
 		@documentElement = new HTMLHtmlElement
 		Object.defineProperty @documentElement, 'ownerDocument', value: @
@@ -334,16 +347,10 @@ class Document
 		new Text text
 	
 	querySelector: (selector) ->
-		if selector is 'body' then return @body
-		if selector is 'html' then return @documentElement
-		
-		null
+		__querySelector @, selector
 	
 	querySelectorAll: (selector) ->
-		if selector is 'body' then return [@body]
-		if selector is 'html' then return [@documentElement]
-		
-		[]
+		__querySelectorAll @, selector
 
 class Window
 	innerWidth: 0
@@ -396,3 +403,14 @@ __clone = (obj) ->
 			cloned[key] = value for key, value of obj
 
 	cloned
+
+__querySelector = (elm, selector) ->
+	__querySelectorAll(elm, selector)[0] ? null
+
+__querySelectorAll = (elm, selector) ->
+	document = if elm instanceof Document then elm else elm.ownerDocument
+
+	if selector is 'body' then return [document?.body]
+	if selector is 'html' then return [document?.documentElement]
+	
+	[]
