@@ -167,32 +167,32 @@ do (window = window ? null) ->
 			cond()
 			
 			while ++cursor < length
-				char = selectors.charAt cursor
+				chr = selectors.charAt cursor
 				if instr
-					if char is '"'
+					if chr is '"'
 						instr = false
 					else
-						buffer += char
+						buffer += chr
 					
 					continue
 				
 				else if inarg
-					if char is ')'
+					if chr is ')'
 						inarg = false
 					
 					else
-						buffer += char
+						buffer += chr
 					
 					continue
 				
-				switch char
+				switch chr
 					when '.' then next 'class'
 					when '#' then next 'id'
 					when '[' then next 'attr'
 					when ':' then next 'pseudo'
 					when '('
 						if parsing is 'pseudo'
-							buffer += char
+							buffer += chr
 							inarg = true
 						
 						else
@@ -209,7 +209,7 @@ do (window = window ? null) ->
 						cond()
 					
 					else
-						buffer += char
+						buffer += chr
 					
 			next null
 
@@ -333,8 +333,6 @@ do (window = window ? null) ->
 			else
 				e = sim elms
 				if e then @push e
-			
-			@
 		
 		addClass: ->
 			elm.addClass arguments... for elm in @
