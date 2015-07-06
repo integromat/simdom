@@ -6,9 +6,9 @@ Node
 
 ###
 
-CONTAINERS = ['a', 'body', 'div', 'html', 'i', 'li', 'p', 'path', 'ul', 'svg']
+NON_CONTAINERS = ['br', 'hr', 'img']
 isContainer = (elm) ->
-	elm.nodeName.toLowerCase() in CONTAINERS
+	elm.nodeName.toLowerCase() not in NON_CONTAINERS
 
 # --------
 
@@ -328,6 +328,8 @@ Object.defineProperties Text.prototype,
 # --------
 
 class Document extends Node
+	nodeType: 9
+	
 	constructor: ->
 		@documentElement = new HTMLHtmlElement
 		Object.defineProperty @documentElement, 'ownerDocument', value: @

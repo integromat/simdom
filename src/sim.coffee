@@ -10,14 +10,14 @@ do (window = window ? null) ->
 	NODE = not window?
 	JQUERY = window?.jQuery?
 	TEMP_ID = 0
-	TAGS = ['a', 'article', 'aside', 'b', 'blockquote', 'body', 'button', 'br', 'canvas', 'dd', 'div', 'dl', 'dt', 'em', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'input', 'i', 'img', 'label', 'legend', 'li', 'nav', 'ol', 'optgroup', 'option', 'p', 'pre', 'section', 'select', 'small', 'span', 'strong', 'textarea', 'table', 'title', 'tr', 'th', 'td', 'ul']
-	SVG_TAGS = ['defs', 'g', 'linearGradient', 'path', 'radialGradient', 'stop', 'svg']
+	TAGS = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'textarea',  'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr']
 	JQUERY_POLYFILLS = ['animate', 'stop', 'slideDown', 'slideUp', 'slideToggle', 'fadeIn', 'fadeOut', 'fadeToggle', 'scrollTop', 'scrollLeft']
 	READY_LISTENERS = []
 	EVENT_CONSTRUCTOR = resize: 'UIEvent', scroll: 'UIEvent', click: 'MouseEvent'
 	CSS_NUMBER = 'columnCount': true, 'fillOpacity': true, 'flexGrow': true, 'flexShrink': true, 'fontWeight': true, 'lineHeight': true, 'opacity': true, 'order': true, 'orphans': true, 'widows': true, 'zIndex': true, 'zoom': true
 	COMPONENT = Object.create null
 	HAS_COMPONENTS = false
+	NAMESPACE = Object.create null
 	
 	# major methods
 	
@@ -27,8 +27,8 @@ do (window = window ? null) ->
 		if selector.__sim__ instanceof SIMBase then return selector.__sim__
 		if 'function' is typeof selector then return sim.ready selector
 		if 'string' is typeof selector
-			# only one possilbe result when # is used in selector
-			if selector in ['html', 'body'] or (/#([a-zA-Z]+[_a-zA-Z0-9-]*)/).test selector
+			# only one possilbe result when #<id> is used in selector
+			if selector in ['html', 'body'] or (/^#([a-z]+[_a-z0-9-]*)$/i).test selector
 				return sim query document, selector
 			
 			else
@@ -38,7 +38,7 @@ do (window = window ? null) ->
 		if selector.nodeType is 3 then return new SIMText selector
 		if selector.nodeType is 9 then return new SIMDocument selector
 		if selector.nodeType is 1
-			defaultKlass = if selector.namespaceURI is SIMSVGElement.URI then SIMSVGElement else SIMElement
+			defaultKlass = NAMESPACE[selector.namespaceURI] ? SIMElement
 
 			if HAS_COMPONENTS
 				if selector.hasAttribute 'sim-component'
@@ -71,6 +71,8 @@ do (window = window ? null) ->
 	if NODE
 		window = new (require './dom')
 		module.exports = sim
+		sim.window = window
+		sim.document = window.document
 		sim.isReady = true
 		sim.destroy = -> window = new (require './dom')
 
@@ -223,8 +225,15 @@ do (window = window ? null) ->
 			return true
 		
 		for condition in conditions
+			if condition.tag?
+				if condition.tag is '*'
+					if elm not instanceof SIMElement then continue
+				
+				else
+					if elm.prop('tagName').toLowerCase() isnt condition.tag then continue
+			
 			if condition.id? and elm.attr('id') isnt condition.id then continue
-			if condition.tag and elm.prop('tagName').toLowerCase() isnt condition.tag then continue
+				
 			if condition['class'].length
 				fulfilled = true
 				for name in condition['class'] when not elm.hasClass name
@@ -325,6 +334,23 @@ do (window = window ? null) ->
 	sanitize = (text) ->
 		text.replace(/>/g, '&gt;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
 	
+	filter = (array, selectors) ->
+		arr = new SIMArray
+		if not selectors?
+			arr.push item for item in array when item not instanceof SIMText
+			return arr
+		
+		if 'function' is typeof selectors
+			for item, index in array when item not instanceof SIMText
+				if selectors.call item, item, index, array
+					arr.push item
+				
+			return arr
+		
+		conditions = parse selectors
+		arr.push item for item in array  when item not instanceof SIMText and matches item, conditions
+		arr
+	
 	# classes
 	
 	class SIMArray
@@ -406,14 +432,9 @@ do (window = window ? null) ->
 			@
 		
 		filter: (selectors) ->
-			arr = new SIMArray
-			if not selectors?
-				arr.push item for item in @
-				return arr
+			if not selectors? then return new SIMArray
 			
-			conditions = parse selectors
-			arr.push item for item in @ when matches item, conditions
-			arr
+			filter @, selectors
 		
 		find: ->
 			arr = new SIMArray
@@ -548,6 +569,23 @@ do (window = window ? null) ->
 		show: ->
 			elm.show arguments... for elm in @
 			@
+		
+		slice: (begin, end) ->
+			arr = new SIMArray
+			len = @length
+			
+			start = begin or 0
+			start = if start >= 0 then start else Math.max 0, len + start
+			
+			upto = if 'number' is typeof end then Math.min(end, len) else len
+			if end < 0 then upto = len + end
+			
+			size = upto - start
+			if size > 0
+				for i in [0...size]
+					arr.push @[start + i]
+			
+			arr
 		
 		splice: ->
 			@
@@ -838,19 +876,18 @@ do (window = window ? null) ->
 			@
 		
 		find: (selector) ->
+			if not selector? then return new SIMArray
+			
 			if 'string' is typeof selector
-				# only one possilbe result when # is used in selector
-				if (/#([a-zA-Z]+[_a-zA-Z0-9-]*)/).test selector
-					return sim query @__dom, selector
-				
-				else
-					return simArray queryAll @__dom, selector ? '*'
+				return simArray queryAll @__dom, selector
 			
 			else
 				throw new Error "Invalid arguments."
 		
 		findOne: (selector) ->
-			sim query @__dom, selector ? '*'
+			if not selector? then return null
+			
+			sim query @__dom, selector
 		
 		focus: ->
 			@__dom.focus()
@@ -886,7 +923,7 @@ do (window = window ? null) ->
 				@__dom.innerHTML
 		
 		children: (selector) ->
-			simArray(elm for elm in @__dom.childNodes when elm.nodeType is 1).filter selector
+			filter simArray(Array::slice.call(@__dom.childNodes)), selector
 		
 		insertAfter: (elms) ->
 			elms = simArray elms
@@ -910,6 +947,7 @@ do (window = window ? null) ->
 		
 		next: (selector) ->
 			elm = sim @__dom.nextSibling
+			if not elm? then return null
 			
 			if selector?
 				if not matches elm, parse selector
@@ -921,25 +959,35 @@ do (window = window ? null) ->
 			if not @__dom.parentNode then return simArray()
 			index = Array::indexOf.call @__dom.parentNode.childNodes, @__dom
 			if index is -1 then return simArray()
-			simArray(Array::slice.call(@__dom.parentNode.childNodes, index + 1)).filter selector
+			filter simArray(Array::slice.call(@__dom.parentNode.childNodes, index + 1)), selector
 		
 		off: (event, selector, handler) ->
 			if 'function' is typeof selector
 				handler = selector
 				selector = undefined
 			
-			fce = handler
+			fn = handler
 			if selector
-				index = @__handlers[event]?[selector]?.original.indexOf handler
+				index = @__handlers[event]?.selector[selector]?.original.indexOf handler
 				if not index? or index is -1
 					return @ # handler doesn't exist
 				
-				fce = @__handlers[event][selector].temporary[index]
+				fn = @__handlers[event].selector[selector].temporary[index]
 				
-				@__handlers[event][selector].original.splice index, 1
-				@__handlers[event][selector].temporary.splice index, 1
+				@__handlers[event].selector[selector].original.splice index, 1
+				@__handlers[event].selector[selector].temporary.splice index, 1
 			
-			@__dom.removeEventListener event, fce
+			else
+				index = @__handlers[event]?.original.indexOf handler
+				if not index? or index is -1
+					return @ # handler doesn't exist
+				
+				fn = @__handlers[event].temporary[index]
+				
+				@__handlers[event].original.splice index, 1
+				@__handlers[event].temporary.splice index, 1
+			
+			@__dom.removeEventListener event, fn
 			@
 		
 		offset: ->
@@ -948,19 +996,31 @@ do (window = window ? null) ->
 			left: bounds.left + @__dom.ownerDocument.defaultView.scrollX
 			top: bounds.top + @__dom.ownerDocument.defaultView.scrollY
 		
-		on: (events, selector, handler) ->
+		###
+		@param {String} events Space separated list of event to handle.
+		@param {String} [selector] Optional target selector.
+		@param {Function} handler Event handler.
+		###
+		
+		on: (events, selector, handler, _once) ->
 			if 'function' is typeof selector
 				handler = selector
 				selector = undefined
-	
+			
+			self = @
+			
 			for event in events.split ' '
-				index = @__handlers[event]?[selector]?.original.indexOf handler
-				if index? and index isnt -1
-					return @ # handler already exists
+				@__handlers[event] ?= original: [], temporary: [], selector: Object.create null
 				
-				fce = handler
 				if selector
-					fce = (event) ->
+					index = @__handlers[event].selector[selector]?.original.indexOf handler
+					if index? and index isnt -1
+						return @ # handler already exists
+						
+					fn = (event) ->
+						if _once
+							SIMElement::off.call self, event.type, selector, handler
+							
 						target = sim event.target
 						if target.is selector
 							return handler.apply target, arguments
@@ -971,12 +1031,25 @@ do (window = window ? null) ->
 						
 						null
 					
-					@__handlers[event] ?= Object.create null
-					@__handlers[event][selector] ?= original: [], temporary: []
-					@__handlers[event][selector].original.push handler
-					@__handlers[event][selector].temporary.push fce
+					@__handlers[event].selector[selector] ?= original: [], temporary: []
+					@__handlers[event].selector[selector].original.push handler
+					@__handlers[event].selector[selector].temporary.push fn
 				
-				@__dom.addEventListener event, fce
+				else
+					index = @__handlers[event].original.indexOf handler
+					if index? and index isnt -1
+						return @ # handler already exists
+					
+					fn = (event) ->
+						if _once
+							SIMElement::off.call self, event.type, selector, handler
+
+						handler.call self, event
+					
+					@__handlers[event].original.push handler
+					@__handlers[event].temporary.push fn
+				
+				@__dom.addEventListener event, fn
 	
 			@
 		
@@ -984,12 +1057,8 @@ do (window = window ? null) ->
 			if 'function' is typeof selector
 				handler = selector
 				selector = undefined
-	
-			fce = =>
-				SIMElement::off.call @, event, fce
-				handler arguments...
-	
-			SIMElement::on.call @, event, selector, fce
+
+			SIMElement::on.call @, event, selector, handler, true
 			@
 		
 		outerHeight: (margin) ->
@@ -1044,6 +1113,7 @@ do (window = window ? null) ->
 		
 		prev: (selector) ->
 			elm = sim @__dom.previousSibling
+			if not elm? then return null
 	
 			if selector?
 				if not matches elm, parse selector
@@ -1055,7 +1125,7 @@ do (window = window ? null) ->
 			if not @__dom.parentNode then return simArray()
 			index = Array::indexOf.call @__dom.parentNode.childNodes, @__dom
 			if index <= 0 then return simArray()
-			simArray(Array::slice.call(@__dom.parentNode.childNodes, 0, index)).filter selector
+			filter simArray(Array::slice.call(@__dom.parentNode.childNodes, 0, index)), selector
 		
 		prop: (key, value) ->
 			if arguments.length is 1
@@ -1165,30 +1235,6 @@ do (window = window ? null) ->
 			get: -> @is ':visible'
 			set: (value) -> @[if value then 'show' else 'hide']()
 	
-	class SIMSVGElement extends SIMElement
-		@NS: 'http://www.w3.org/2000/svg'
-		
-		addClass: (name) ->
-			if not @hasClass name
-				@attr 'class', [name].concat (@attr('class') ? '').split ' '
-				
-			@
-		
-		hasClass: (name) ->
-			(@attr('class') ? '').split(' ').indexOf(name) isnt -1
-		
-		toString: ->
-			str = @__dom.outerHTML
-			if not str? # polyfill
-				outerHTML = (elm) ->
-					attrs = ("#{attr.name}=\"#{attr.value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}\"" for attr in elm.attributes)
-					if attrs.length then attrs.unshift '' # to create indent
-					str = "<#{elm.nodeName.toLowerCase()}#{attrs.join ' '}>#{outerHTML(child) for child in elm.childNodes}</#{elm.nodeName.toLowerCase()}>"
-				
-				str = outerHTML @__dom
-			
-			str
-	
 	class SIMText extends SIMBase
 		constructor: (text) ->
 			if not text?
@@ -1222,7 +1268,7 @@ do (window = window ? null) ->
 		on: SIMElement::on
 		once: SIMElement::once
 		off: SIMElement::off
-		toString: -> @__dom.documentElement.outerHTML
+		toString: -> "<!DOCTYPE html>#{@__dom.documentElement.outerHTML}"
 		trigger: SIMElement::trigger
 		width: -> document.documentElement.offsetWidth
 	
@@ -1253,23 +1299,16 @@ do (window = window ? null) ->
 		location:
 			get: -> window.location
 			set: (value) -> window.location = value
-	
-	#if 'undefined' isnt CustomEvent then SIMEvent.prototype = CustomEvent.prototype
-	
-	create = (tag, parent, props) ->
+
+	sim.create = (tag, parent, props) ->
+		klass = if @prototype instanceof SIMElement then @ else SIMElement
+		
 		if HAS_COMPONENTS and (/@([-a-z0-9_]+)/i).exec props
-			new (COMPONENT[RegExp.$1] ? SIMElement) arguments...
+			new (COMPONENT[RegExp.$1] ? klass) arguments...
 		
 		else
-			new SIMElement arguments...
-		
-	createSVG = (tag, parent, props) ->
-		if HAS_COMPONENTS and (/@([-a-z0-9_]+)/i).exec props
-			new (COMPONENT[RegExp.$1] ? SIMSVGElement) arguments...
-		
-		else
-			new SIMSVGElement arguments...
-	
+			new klass arguments...
+
 	sim.one = ->
 		res = sim arguments...
 		if res instanceof SIMArray then res = res.first()
@@ -1280,8 +1319,7 @@ do (window = window ? null) ->
 		if args.length is 1 then return new SIMArray args[0]
 		new SIMArray args
 	
-	sim.html = create.bind null, 'html', null
-	sim.svg = createSVG.bind null, 'svg', null
+	sim.html = sim.create.bind SIMElement, 'html', null
 	sim.text = (text) -> new SIMText text
 	sim.ready = (handler) ->
 		if sim.isReady
@@ -1290,12 +1328,19 @@ do (window = window ? null) ->
 		READY_LISTENERS.push handler
 		@
 	
-	sim.register = (name, klass) ->
+	sim.registerComponent = (name, klass) ->
 		if klass.prototype not instanceof SIMElement
 			throw new Error "Invalid arguments."
 		
 		COMPONENT[name] = klass
 		HAS_COMPONENTS = true
+		@
+	
+	sim.registerNamespace = (name, klass) ->
+		if klass.prototype not instanceof SIMElement
+			throw new Error "Invalid arguments."
+			
+		NAMESPACE[name] = klass
 		@
 
 	sim.SIMElement = SIMElement
@@ -1303,27 +1348,19 @@ do (window = window ? null) ->
 	sim.SIMDocument = SIMDocument
 	sim.SIMWindow = SIMWindow
 	sim.SIMText = SIMText
-	
+
 	do ->
 		for tag in TAGS
-			sim[tag] = create.bind null, tag, null
+			if not sim.hasOwnProperty tag
+				sim[tag] = sim.create.bind SIMElement, tag, null
 			
 			do (tag) ->
-				Object.defineProperty SIMElement.prototype, tag,
-					enumerable: false
-					configurable: true
-					writable: true
-					value: -> create tag, @, arguments...
-		
-		for tag in SVG_TAGS
-			sim[tag] = createSVG.bind null, tag, null
-			
-			do (tag) ->
-				Object.defineProperty SIMSVGElement.prototype, tag,
-					enumerable: false
-					configurable: true
-					writable: true
-					value: -> createSVG tag, @, arguments...
+				if not SIMElement::hasOwnProperty tag
+					Object.defineProperty SIMElement.prototype, tag,
+						enumerable: false
+						configurable: true
+						writable: true
+						value: -> sim.create.call SIMElement, tag, @, arguments...
 		
 		# jQuery integration
 		
