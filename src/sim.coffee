@@ -419,6 +419,10 @@ do (window = window ? null) ->
 			elm.detach() for elm in @
 			@
 		
+		do: (method) ->
+			method.call elm for elm in @
+			@
+		
 		each: (method) ->
 			method.call item, index, item for item, index in @
 			@
