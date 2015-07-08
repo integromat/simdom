@@ -373,6 +373,22 @@ do (window = window ? null) ->
 			elm.addClass arguments... for elm in @
 			@
 		
+		attr: (key, value) ->
+			if arguments.length is 1
+				@first()?.attr key
+	
+			else
+				elm.attr key, value for elm in @
+				@
+		
+		after: ->
+			elm.after arguments... for elm in @
+			@
+		
+		append: ->
+			elm.append arguments... for elm in @
+			@
+		
 		blur: ->
 			@first()?.blur()
 			@
@@ -388,10 +404,6 @@ do (window = window ? null) ->
 			else
 				elm.css key, value for elm in @
 				@
-		
-		append: ->
-			elm.append arguments... for elm in @
-			@
 		
 		children: ->
 			arr = new SIMArray
@@ -558,6 +570,14 @@ do (window = window ? null) ->
 				arr.push elm.prevAll arguments...
 			
 			arr
+		
+		prop: (key, value) ->
+			if arguments.length is 1
+				@first()?.prop key
+	
+			else
+				elm.prop key, value for elm in @
+				@
 		
 		remove: ->
 			elm.remove() for elm in @
@@ -1010,6 +1030,9 @@ do (window = window ? null) ->
 			if 'function' is typeof selector
 				handler = selector
 				selector = undefined
+			
+			if 'function' isnt typeof handler
+				throw new Error "Invalid arguments."
 			
 			self = @
 			
