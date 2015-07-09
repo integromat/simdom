@@ -150,7 +150,7 @@ do (window = window ? null) ->
 							if match then condition.attribute.push name: match[1], operator: '=', value: match[2]
 							
 						when 'pseudo'
-							match = buffer.match(/^([a-z]+)(?:\((.*))?$/i)
+							match = buffer.match(/^([-a-z]+)(?:\((.*))?$/i)
 							if match then condition.pseudo.push name: match[1], conditions: parse match[2]
 
 				buffer = ''
@@ -220,7 +220,7 @@ do (window = window ? null) ->
 		
 		conditions
 	
-	matches = (elm, conditions) ->
+	matches = (elm, conditions, index = 0) ->
 		if conditions.length is 0
 			return true
 		
@@ -291,22 +291,14 @@ do (window = window ? null) ->
 							if elm.__dom.checked isnt true
 								fulfilled = false
 								break
-								
+							
 						when 'odd'
-							if not elm.__dom.parentNode?
-								fulfilled = false
-								break
-								
-							if Array::indexOf.call(elm.__dom.parentNode.childNodes, elm.__dom) % 2 is 1
+							if index % 2 is 1
 								fulfilled = false
 								break
 								
 						when 'even'
-							if not elm.__dom.parentNode?
-								fulfilled = false
-								break
-								
-							if Array::indexOf.call(elm.__dom.parentNode.childNodes, elm.__dom) % 2 is 0
+							if index % 2 is 0
 								fulfilled = false
 								break
 								
@@ -348,7 +340,7 @@ do (window = window ? null) ->
 			return arr
 		
 		conditions = parse selectors
-		arr.push item for item in array  when item not instanceof SIMText and matches item, conditions
+		arr.push item for item, index in array when item not instanceof SIMText and matches item, conditions, index
 		arr
 	
 	# classes
@@ -524,7 +516,7 @@ do (window = window ? null) ->
 				return arr
 			
 			conditions = parse selectors
-			arr.push item for item in @ when not matches item, conditions
+			arr.push item for item, index in @ when not matches item, conditions, index
 			arr
 		
 		off: ->
