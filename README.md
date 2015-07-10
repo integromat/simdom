@@ -77,9 +77,9 @@ sim.array <selector> # always return result as SIMArray
 sim.div() # <div></div>
 sim.div '.style' # <div class="style"></div>
 sim.div '#uid' # <div id="uid"></div>
-dim.div '[data-attr="value"]' # <div data-attr="value"></div>
-dim.div ':disabled' # <div disabled></div>
-dim.div '.style.foo#uid[data-attr="value"]:disabled' # <div class="style foo" id="uid" data-attr="value" disabled></div>
+sim.div '[data-attr="value"]' # <div data-attr="value"></div>
+sim.div ':disabled' # <div disabled></div>
+sim.div '.style.foo#uid[data-attr="value"]:disabled' # <div class="style foo" id="uid" data-attr="value" disabled></div>
 ```
 
 #### Nesting
