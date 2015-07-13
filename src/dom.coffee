@@ -6,7 +6,9 @@ Node
 
 ###
 
+BUILTIN_EVENTS = {}
 NON_CONTAINERS = ['br', 'hr', 'img']
+
 isContainer = (elm) ->
 	elm.nodeName.toLowerCase() not in NON_CONTAINERS
 
@@ -81,6 +83,11 @@ class Event
 	stopImmediatePropagation: ->
 
 class CustomEvent extends Event
+class UIEvent extends Event
+
+BUILTIN_EVENTS['Event'] = Event
+BUILTIN_EVENTS['CustomEvent'] = CustomEvent
+BUILTIN_EVENTS['UIEvent'] = UIEvent
 
 # --------
 
@@ -196,7 +203,15 @@ Object.defineProperties Node.prototype,
 			@parentNode.childNodes[index + 1]
 	
 	ownerDocument:
-		get: -> @parentNode?.ownerDocument ? null
+		get: ->
+			if @parentNode instanceof Document
+				return @parentNode
+			
+			else if @parentNode?
+				@parentNode.ownerDocument
+			
+			else
+				@__creatorDocument
 	
 	previousSibling:
 		get: ->
@@ -338,12 +353,20 @@ class Document extends Node
 		@documentElement.appendChild @body
 	
 	createElement: (name) ->
-		new HTMLElement name
+		elm = new HTMLElement name
+		Object.defineProperty elm, '__creatorDocument', value: @
+		elm
 	
 	createElementNS: (ns, name) ->
-		elm = new HTMLElement name
+		elm = @createElement name
 		elm.namespaceURI = ns
 		elm
+	
+	createEvent: (name) ->
+		if not BUILTIN_EVENTS[name]
+			throw new Error "Invalid event type '#{name}'."
+		
+		new BUILTIN_EVENTS[name]
 	
 	createTextNode: (text) ->
 		new Text text
@@ -353,6 +376,10 @@ class Document extends Node
 	
 	querySelectorAll: (selector) ->
 		__querySelectorAll @, selector
+
+Object.defineProperties Document.prototype,
+	ownerDocument:
+		get: -> null
 
 class Window
 	innerWidth: 0
@@ -368,8 +395,6 @@ class Window
 		getPropertyValue: (key) ->
 			elm.style[key]
 	
-	Event: Event
-	CustomEvent: CustomEvent
 	Document: Document
 	Window: Window
 	Node: Node
@@ -378,6 +403,10 @@ class Window
 	
 	setImmediate: setImmediate
 	clearImmediate: clearImmediate
+
+do ->
+	for key, value of BUILTIN_EVENTS
+		Window::[key] = value
 
 module.exports = Window
 		
