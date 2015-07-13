@@ -296,15 +296,15 @@ describe 'basic test suite', ->
 			ticks++
 		
 		dom = sim.div ->
-			@once 'e', fn
+			@once 'resize', fn
 		
-		dom.emit 'e'
+		dom.emit 'resize'
 		assert.strictEqual ticks, 1
-		dom.emit 'e'
+		dom.emit 'resize'
 		assert.strictEqual ticks, 1
-		dom.once 'e', fn
-		dom.off 'e', fn
-		dom.emit 'e'
+		dom.once 'resize', fn
+		dom.off 'resize', fn
+		dom.emit 'resize'
 		assert.strictEqual ticks, 1
 	
 	it 'should create a custom component #1', ->

@@ -11,7 +11,7 @@
 		"jquery",
 		"browser"
 	],
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"main": "lib/sim.js",
 	"repository": {
 		"type": "git",

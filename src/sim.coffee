@@ -13,11 +13,16 @@ do (window = window ? null) ->
 	TAGS = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'textarea',  'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr']
 	JQUERY_POLYFILLS = ['animate', 'stop', 'slideDown', 'slideUp', 'slideToggle', 'fadeIn', 'fadeOut', 'fadeToggle', 'scrollTop', 'scrollLeft']
 	READY_LISTENERS = []
-	EVENT_CONSTRUCTOR = resize: 'UIEvent', scroll: 'UIEvent', click: 'MouseEvent'
 	CSS_NUMBER = 'columnCount': true, 'fillOpacity': true, 'flexGrow': true, 'flexShrink': true, 'fontWeight': true, 'lineHeight': true, 'opacity': true, 'order': true, 'orphans': true, 'widows': true, 'zIndex': true, 'zoom': true
 	COMPONENT = Object.create null
 	HAS_COMPONENTS = false
 	NAMESPACE = Object.create null
+	EVENT_CONSTRUCTOR = resize: 'UIEvent', scroll: 'UIEvent'
+	ALTERNATIVE_EVENT_CONSTRUCTORS =
+		'CustomEvent': (name, options) ->
+			@initCustomEvent name, options.bubbles ? true, options.cancelable ? false, options.detail ? {}
+		'UIEvent': (name, options) ->
+			@initUIEvent name, options.bubbles ? true, options.cancelable ? false, window, 0
 	
 	# major methods
 	
@@ -878,7 +883,7 @@ do (window = window ? null) ->
 					event = new window[klass] name, options
 				catch
 					event = @__dom.ownerDocument.createEvent klass
-					event.initCustomEvent name, options.bubbles ? true, options.cancelable ? false, options.detail
+					ALTERNATIVE_EVENT_CONSTRUCTORS[klass].call event, name, options
 			
 			else
 				throw new Error "Invalid arguments."
@@ -1009,8 +1014,8 @@ do (window = window ? null) ->
 		offset: ->
 			bounds = @__dom.getBoundingClientRect()
 			
-			left: bounds.left + @__dom.ownerDocument.defaultView.scrollX
-			top: bounds.top + @__dom.ownerDocument.defaultView.scrollY
+			left: bounds.left + @__dom.ownerDocument.defaultView.pageXOffset
+			top: bounds.top + @__dom.ownerDocument.defaultView.pageYOffset
 		
 		###
 		@param {String} events Space separated list of event to handle.
