@@ -41,7 +41,6 @@ class EventTarget
 						event.currentTarget = level
 						res = handler.call level, event
 						if res is false
-							event.stopPropagation()
 							event.preventDefault()
 						
 						if stoppedImmediately

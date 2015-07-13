@@ -185,16 +185,18 @@ describe 'basic test suite', ->
 		dom = sim.div ->
 			@on 'testevent', (event) ->
 				assert.ok tick
+				assert.ok event.defaultPrevented
 				dom.remove()
 				done()
 			
 			p = @p ->
 				@on 'testevent', (event) ->
 					tick = true
+					false # prevents default
 			
 			@appendTo sim('body')
 		
-		p.emit 'testevent', bubbles: true
+		p.emit 'testevent', bubbles: true, cancelable: true
 	
 	it 'should handle events #2', (done) ->
 		tick = false

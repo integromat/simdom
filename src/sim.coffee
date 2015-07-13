@@ -1047,11 +1047,15 @@ do (window = window ? null) ->
 							
 						target = sim event.target
 						if target.is selector
-							return handler.apply target, arguments
+							ret = handler.apply target, arguments
+							if ret is false then event.preventDefault()
+							return ret
 						
 						closest = target.closest selector
 						if closest
-							return handler.apply closest, arguments
+							ret = handler.apply closest, arguments
+							if ret is false then event.preventDefault()
+							return ret
 						
 						null
 					
@@ -1068,7 +1072,9 @@ do (window = window ? null) ->
 						if _once
 							SIMElement::off.call self, event.type, selector, handler
 
-						handler.call self, event
+						ret = handler.call self, event
+						if ret is false then event.preventDefault()
+						return ret
 					
 					@__handlers[event].original.push handler
 					@__handlers[event].temporary.push fn
