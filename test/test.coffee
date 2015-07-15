@@ -179,6 +179,15 @@ describe 'basic test suite', ->
 		assert.compare arr.slice(2), '<i></i><b></b>'
 		assert.compare arr.slice(1, 2), '<a></a>'
 	
+	it 'should query dom #4', ->
+		dom = sim.div '[data-a="hello"]', ->
+			@attr 'data-b', 'hi'
+			@data 'c', 'welcome'
+			
+		assert.strictEqual dom.data().a, 'hello'
+		assert.strictEqual dom.data().b, 'hi'
+		assert.strictEqual dom.data().c, 'welcome'
+	
 	it 'should handle events #1', (done) ->
 		tick = false
 		p = null

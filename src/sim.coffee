@@ -417,7 +417,7 @@ do (window = window ? null) ->
 			arr
 		
 		data: (key, value) ->
-			if arguments.length is 1
+			if arguments.length < 2
 				@first()?.data key
 	
 			else
@@ -840,7 +840,17 @@ do (window = window ? null) ->
 			sim @__dom.cloneNode true
 		
 		data: (key, value) ->
-			if arguments.length is 1
+			if arguments.length is 0
+				obj = {}
+				for attr in @__dom.attributes when (/^data-(.*)$/).exec attr.name
+					obj[RegExp.$1] = attr.value
+				
+				for key, value of @__data
+					obj[key] = value
+				
+				obj
+			
+			else if arguments.length is 1
 				if @__data[key]?
 					return @__data[key]
 				

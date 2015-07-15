@@ -91,6 +91,7 @@ BUILTIN_EVENTS['UIEvent'] = UIEvent
 # --------
 
 class Node extends EventTarget
+	attributes: null
 	childNodes: null
 	parentNode: null
 	namespaceURI: 'http://www.w3.org/1999/xhtml'
@@ -100,8 +101,8 @@ class Node extends EventTarget
 	constructor: (name) ->
 		super()
 		
+		@attributes = []
 		@nodeName = @tagName = name.toUpperCase()
-		@attributes = {}
 		@style = {}
 		@childNodes = []
 	
@@ -138,10 +139,13 @@ class Node extends EventTarget
 		elm
 	
 	getAttribute: (key) ->
-		@attributes[key]
+		for attr in @attributes when attr.name is key
+			return attr.value
+		
+		null
 	
 	hasAttribute: (key) ->
-		@attributes[key]?
+		@getAttribute(key)?
 
 	hasChildNodes: ->
 		@childNodes.length > 0
@@ -174,7 +178,11 @@ class Node extends EventTarget
 		"[#{@constructor.name}]"
 	
 	removeAttribute: (key) ->
-		delete @attributes[key]
+		for attr, index in @attributes when attr.name is key
+			@attributes.splice index, 1
+			break
+		
+		@
 	
 	removeChild: (child) ->
 		index = @childNodes.indexOf child
@@ -185,7 +193,16 @@ class Node extends EventTarget
 		child
 	
 	setAttribute: (key, value) ->
-		@attributes[key] = value
+		for attr in @attributes when attr.name is key
+			attr.value = value
+			return
+		
+		# not found, add one
+		@attributes.push
+			name: key
+			value: value
+		
+		value
 
 Object.defineProperties Node.prototype,
 	firstChild:
@@ -228,13 +245,6 @@ Object.defineProperties Node.prototype,
 # --------
 
 class Element extends Node
-	attributes: null
-	
-	constructor: (name) ->
-		super name
-		
-		@attributes = {}
-	
 	cloneNode: (deep) ->
 		elm = super deep
 		elm.attributes = __clone @attributes
@@ -251,12 +261,12 @@ class Element extends Node
 
 Object.defineProperties Element.prototype,
 	className:
-		get: -> @attributes['class'] ? ''
-		set: (value) -> @attributes['class'] = value
+		get: -> @getAttribute('class') ? ''
+		set: (value) -> @setAttribute 'class', value
 	
 	id:
-		get: -> @attributes['id'] ? ''
-		set: (value) -> @attributes['id'] = value
+		get: -> @getAttribute('id') ? ''
+		set: (value) -> @setAttribute 'id', value
 
 	innerHTML:
 		get: -> (child.outerHTML for child in @childNodes).join ''
@@ -415,7 +425,7 @@ __normalizeCssKey = (key) ->
 	key.replace /[A-Z]/g, (a) -> "-#{a.toLowerCase()}"
 
 __printAttributes = (elm) ->
-	attrs = ("#{key}=\"#{value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}\"" for key, value of elm.attributes)
+	attrs = ("#{attr.name}=\"#{attr.value.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}\"" for attr in elm.attributes)
 	styles = ("#{__normalizeCssKey key}: #{value};" for key, value of elm.style)
 	if styles.length then attrs.push "style=\"#{styles.join ' '}\""
 	if attrs.length then attrs.unshift '' # to create indent
