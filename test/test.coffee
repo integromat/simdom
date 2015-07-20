@@ -49,8 +49,8 @@ describe 'basic test suite', ->
 		assert.compare dom, '<ul><li><a href="#">test</a></li></ul>'
 		
 		if NODE
-			dom.appendTo sim.document.body
-			assert.compare sim(sim.document), '<!DOCTYPE html><html><body><ul><li><a href="#">test</a></li></ul></body></html>'
+			dom.appendTo sim.window.document.body
+			assert.compare sim(sim.window.document), '<!DOCTYPE html><html><head></head><body><ul><li><a href="#">test</a></li></ul></body></html>'
 	
 	it 'should create basic dom #2', ->
 		dom = sim.div '.header', ->
@@ -90,6 +90,14 @@ describe 'basic test suite', ->
 							left: 4
 		
 		assert.compare dom, '<div style="z-index: 1; left: 1px;"><div style="z-index: 2;"><div style="z-index: 3;"><div style="z-index: 4; left: 4px;"></div></div></div></div>'
+	
+	it 'should create basic dom #4', ->
+		dom = sim.div ->
+			@input '[type="checkbox"]'
+			@input '[type="checkbox"]', -> @checked = true
+			@input '[type="checkbox"]', -> @prop 'checked', true
+		
+		assert.compare dom, '<div><input type="checkbox"><input checked="checked" type="checkbox"><input checked="checked" type="checkbox"></div>'
 		
 	it 'should manipulate with dom #1', ->
 		dom = sim.div '.header'
@@ -157,8 +165,6 @@ describe 'basic test suite', ->
 		dom.remove()
 	
 	it 'should query dom #2', ->
-		if NODE then return @skip() # not implemented yet
-		
 		i = null
 		dom = sim.div ->
 			@div ->

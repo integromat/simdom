@@ -7,11 +7,13 @@
 ###
 
 do (window = window ? null) ->
+	if window?.sim? then return # sim is already initialized
+	
 	NODE = not window?
 	JQUERY = window?.jQuery?
 	TEMP_ID = 0
 	TAGS = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'textarea',  'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr']
-	JQUERY_POLYFILLS = ['animate', 'stop', 'slideDown', 'slideUp', 'slideToggle', 'fadeIn', 'fadeOut', 'fadeToggle', 'scrollTop', 'scrollLeft']
+	JQUERY_POLYFILLS = ['animate', 'stop', 'slideDown', 'slideUp', 'slideToggle', 'fadeIn', 'fadeOut', 'fadeToggle']
 	READY_LISTENERS = []
 	CSS_NUMBER = 'columnCount': true, 'fillOpacity': true, 'flexGrow': true, 'flexShrink': true, 'fontWeight': true, 'lineHeight': true, 'opacity': true, 'order': true, 'orphans': true, 'widows': true, 'zIndex': true, 'zoom': true
 	COMPONENT = Object.create null
@@ -55,7 +57,7 @@ do (window = window ? null) ->
 			return new defaultKlass selector
 		
 		if JQUERY and selector instanceof window.jQuery then return new SIMArray selector.toArray()
-		if window.Window? and selector instanceof window.Window then return new SIMWindow selector
+		if window.Window? and selector.constructor is window.Window then return new SIMWindow selector
 		
 		null
 	
@@ -74,20 +76,25 @@ do (window = window ? null) ->
 	# browser or node?
 	
 	if NODE
-		window = new (require './dom')
 		module.exports = sim
+		window = require './dom'
 		sim.window = window
-		sim.document = window.document
-		sim.isReady = true
-		sim.destroy = -> window = new (require './dom')
+		sim.require = (file, done) ->
+			file = require('path').resolve process.cwd(), file
+			sim(window.document.body).script "[src=\"#{file}\"]", ->
+				_error = (err) =>
+					@off 'load', _load
+					done? err
+					
+				_load = ->
+					@off 'error', _error
+					done? null
+					
+				@once 'error', _error
+				@once 'load', _load
 
-	else
-		window.sim = sim
-		window.document.addEventListener 'DOMContentLoaded', ->
-			if sim.isReady then return
-			sim.isReady = true
-			
-			listener() for listener in READY_LISTENERS
+	window.sim = sim
+	window.document.addEventListener 'DOMContentLoaded', -> sim.ready()
 
 	document = window.document
 	setImmediate = window.setImmediate or (fn) -> setTimeout fn, 0
@@ -703,11 +710,6 @@ do (window = window ? null) ->
 			else
 				throw new Error "Invalid arguments."
 			
-			# attach to parent
-			
-			if parent?
-				@appendTo parent
-			
 			# parse properties
 	
 			if 'string' is typeof props
@@ -716,6 +718,11 @@ do (window = window ? null) ->
 				if props.id? then @attr 'id', props.id
 				if props.class? then @addClass klass for klass in props.class
 				if props.attribute? then @attr attr.name, attr.value for attr in props.attribute
+			
+			# attach to parent
+			
+			if parent?
+				@appendTo parent
 			
 			next?.call @
 		
@@ -1172,6 +1179,12 @@ do (window = window ? null) ->
 				@__dom[key]
 	
 			else
+				if key in ['disabled', 'selected', 'checked']
+					if value
+						@__dom.setAttribute key, key
+					else
+						@__dom.removeAttribute key
+					
 				@__dom[key] = value
 				@
 		
@@ -1208,6 +1221,12 @@ do (window = window ? null) ->
 			
 			@__dom.parentNode?.removeChild @__dom
 			@
+		
+		scrollLeft: ->
+			@__dom.scrollLeft
+
+		scrollTop: ->
+			@__dom.scrollTop
 
 		show: ->
 			SIMElement::css.call @, 'display', 'block'
@@ -1320,8 +1339,8 @@ do (window = window ? null) ->
 		once: SIMElement::once
 		off: SIMElement::off
 		open: -> window.open arguments...
-		scrollLeft: -> window.scrollX
-		scrollTop: -> window.scrollY
+		scrollLeft: -> @__dom.pageXOffset
+		scrollTop: -> @__dom.pageYOffset
 		toString: -> @inspect()
 		trigger: SIMElement::trigger
 		width: -> document.documentElement.clientWidth
@@ -1362,6 +1381,14 @@ do (window = window ? null) ->
 	sim.html = sim.create.bind SIMElement, 'html', null
 	sim.text = (text) -> new SIMText text
 	sim.ready = (handler) ->
+		if arguments.length is 0
+			if sim.isReady then return
+			sim.isReady = true
+			
+			listener() for listener in READY_LISTENERS
+			READY_LISTENERS = null
+			return
+			
 		if sim.isReady
 			return setImmediate handler
 		
@@ -1416,13 +1443,16 @@ do (window = window ? null) ->
 					window.jQuery(@__dom)[name] arguments...
 		
 		SIMBase::toJquery = ->
-			if not JQUERY?
-				throw new Error "jQuery is required in order to use '#{name}' method."
+			if not JQUERY
+				throw new Error "jQuery is required in order to use 'toJquery' method."
 			
 			window.jQuery @__dom
 		
 		SIMArray::toJquery = ->
-			if not JQUERY?
-				throw new Error "jQuery is required in order to use '#{name}' method."
+			if not JQUERY
+				throw new Error "jQuery is required in order to use 'toJquery' method."
 			
 			window.jQuery (elm.__dom for elm in @)
+	
+	if NODE
+		require('./mock') sim
