@@ -20,6 +20,7 @@ do (window = window ? null) ->
 	HAS_COMPONENTS = false
 	NAMESPACE = Object.create null
 	EVENT_CONSTRUCTOR = resize: 'UIEvent', scroll: 'UIEvent'
+	BOOTSTRAP_EVENT = /^[^\.]+\.bs\.[^\.]+$/
 	ALTERNATIVE_EVENT_CONSTRUCTORS =
 		'CustomEvent': (name, options) ->
 			@initCustomEvent name, options.bubbles ? true, options.cancelable ? false, options.detail ? {}
@@ -470,6 +471,12 @@ do (window = window ? null) ->
 			@first()?.focus()
 			@
 		
+		hasClass: (name) ->
+			for elm in @
+				if elm.hasClass name then return true
+			
+			false
+		
 		height: (value) ->
 			if arguments.length
 				elm.height value for elm in @
@@ -548,6 +555,13 @@ do (window = window ? null) ->
 		
 		outerWidth: (margin) ->
 			@first()?.outerWidth(margin) ? 0
+		
+		parent: ->
+			arr = new SIMArray
+			for elm in @
+				arr.push elm.parent arguments...
+			
+			arr
 		
 		push: (elm) ->
 			if not elm? then return @
@@ -894,18 +908,23 @@ do (window = window ? null) ->
 		###
 		
 		emit: (name, options = {}) ->
-			if 'string' is typeof name
-				klass = EVENT_CONSTRUCTOR[name] ? 'CustomEvent'
-				try
-					event = new window[klass] name, options
-				catch
-					event = @__dom.ownerDocument.createEvent klass
-					ALTERNATIVE_EVENT_CONSTRUCTORS[klass].call event, name, options
-			
+			if BOOTSTRAP_EVENT.test name
+				jq = @toJquery()
+				jq.trigger.apply jq, arguments
+				
 			else
-				throw new Error "Invalid arguments."
-			
-			@__dom.dispatchEvent event
+				if 'string' is typeof name
+					klass = EVENT_CONSTRUCTOR[name] ? 'CustomEvent'
+					try
+						event = new window[klass] name, options
+					catch
+						event = @__dom.ownerDocument.createEvent klass
+						ALTERNATIVE_EVENT_CONSTRUCTORS[klass].call event, name, options
+				
+				else
+					throw new Error "Invalid arguments."
+				
+				@__dom.dispatchEvent event
 		
 		empty: ->
 			while @__dom.hasChildNodes()
@@ -1025,7 +1044,12 @@ do (window = window ? null) ->
 				@__handlers[event].original.splice index, 1
 				@__handlers[event].temporary.splice index, 1
 			
-			@__dom.removeEventListener event, fn
+			if BOOTSTRAP_EVENT.test event
+				@toJquery().off event, fn
+				
+			else
+				@__dom.removeEventListener event, fn
+
 			@
 		
 		offset: ->
@@ -1049,6 +1073,7 @@ do (window = window ? null) ->
 				throw new Error "Invalid arguments."
 			
 			self = @
+			jqevt = false
 			
 			for event in events.split ' '
 				@__handlers[event] ?= original: [], temporary: [], selector: Object.create null
@@ -1060,7 +1085,8 @@ do (window = window ? null) ->
 						
 					fn = (event) ->
 						if _once
-							SIMElement::off.call self, event.type, selector, handler
+							eventType = if jqevt then "#{event.type}#{if event.namespace then ".#{event.namespace}" else ''}" else event.type
+							SIMElement::off.call self, eventType, selector, handler
 							
 						target = sim event.target
 						if target.is selector
@@ -1087,7 +1113,8 @@ do (window = window ? null) ->
 					
 					fn = (event) ->
 						if _once
-							SIMElement::off.call self, event.type, selector, handler
+							eventType = if jqevt then "#{event.type}#{if event.namespace then ".#{event.namespace}" else ''}" else event.type
+							SIMElement::off.call self, eventType, selector, handler
 
 						ret = handler.call self, event
 						if ret is false then event.preventDefault()
@@ -1096,7 +1123,12 @@ do (window = window ? null) ->
 					@__handlers[event].original.push handler
 					@__handlers[event].temporary.push fn
 				
-				@__dom.addEventListener event, fn
+				if BOOTSTRAP_EVENT.test event
+					jqevt = true
+					@toJquery().on event, fn
+					
+				else
+					@__dom.addEventListener event, fn
 	
 			@
 		
