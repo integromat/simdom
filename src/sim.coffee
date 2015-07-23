@@ -1349,6 +1349,11 @@ do (window = window ? null) ->
 		insertAfter: SIMElement::insertAfter
 		inspect: -> "[SIMText '#{@__dom.textContent}']"
 		is: -> false
+		next: SIMElement::next
+		nextAll: SIMElement::nextAll
+		parent: SIMElement::parent
+		prev: SIMElement::prev
+		prevAll: SIMElement::prevAll
 		remove: SIMElement::remove
 		text: SIMElement::text
 	
