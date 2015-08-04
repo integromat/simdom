@@ -35,7 +35,7 @@ do (window = window ? null) ->
 		if selector.__sim__ instanceof SIMBase then return selector.__sim__
 		if 'function' is typeof selector then return sim.ready selector
 		if 'string' is typeof selector
-			# only one possilbe result when #<id> is used in selector
+			# only one possilbe result when #<id> is used as selector
 			if selector in ['html', 'body'] or (/^#([a-z]+[_a-z0-9-]*)$/i).test selector
 				return sim query document, selector
 			
@@ -112,6 +112,9 @@ do (window = window ? null) ->
 	queryDo = (method, dom, selector) ->
 		tempId = false
 		
+		selector = selector.replace (/@([a-z]+[_a-z0-9-]*)/gi), (a, b) ->
+			"[sim-component=\"#{b}\"]"
+		
 		if ':scope ' is selector.substr 0, 7
 			if not dom.hasAttribute 'id'
 				tempId = true
@@ -158,6 +161,7 @@ do (window = window ? null) ->
 						when 'tag' then condition.tag = buffer
 						when 'id' then condition.id = buffer
 						when 'class' then condition.class.push buffer
+						when 'component' then condition.attribute.push name: 'sim-component', operator: '=', value: buffer
 						when 'attr'
 							match = buffer.match(/^([_a-z0-9-]+)(?:=(.*))?\]$/i)
 							if match then condition.attribute.push name: match[1], operator: '=', value: match[2]
@@ -206,6 +210,7 @@ do (window = window ? null) ->
 					when '#' then next 'id'
 					when '[' then next 'attr'
 					when ':' then next 'pseudo'
+					when '@' then next 'component'
 					when '('
 						if parsing is 'pseudo'
 							buffer += chr
@@ -1432,12 +1437,15 @@ do (window = window ? null) ->
 		READY_LISTENERS.push handler
 		@
 	
-	sim.registerComponent = (name, klass) ->
+	sim.registerComponent = (name, klass, init = false) ->
 		if klass.prototype not instanceof SIMElement
 			throw new Error "Invalid arguments."
 		
 		COMPONENT[name] = klass
 		HAS_COMPONENTS = true
+		
+		if init then sim("[sim-component=\"#{name}\"]")
+		
 		@
 	
 	sim.registerNamespace = (name, klass) ->

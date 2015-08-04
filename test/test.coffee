@@ -330,6 +330,11 @@ describe 'basic test suite', ->
 		dom = sim.div '@custom-component'
 		assert.ok dom instanceof SIMElementExtended
 		assert.ok dom instanceof sim.SIMElement
+		
+		sim('body').append dom
+		assert.strictEqual sim('@custom-component').first(), dom
+		assert.strictEqual sim('body > @custom-component').first(), dom
+		assert.strictEqual sim('body').children('@custom-component').first(), dom
 
 describe 'basic svg test suite', ->
 	it 'should create basic svg dom #1', ->
