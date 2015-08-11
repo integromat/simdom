@@ -15,6 +15,7 @@ do (window = window ? null) ->
 	TAGS = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'textarea',  'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr']
 	JQUERY_POLYFILLS = ['animate', 'stop', 'slideDown', 'slideUp', 'slideToggle', 'fadeIn', 'fadeOut', 'fadeToggle']
 	READY_LISTENERS = []
+	CSS_SHEET = null
 	CSS_NUMBER = 'columnCount': true, 'fillOpacity': true, 'flexGrow': true, 'flexShrink': true, 'fontWeight': true, 'lineHeight': true, 'opacity': true, 'order': true, 'orphans': true, 'widows': true, 'zIndex': true, 'zoom': true
 	COMPONENT = Object.create null
 	HAS_COMPONENTS = false
@@ -502,6 +503,8 @@ do (window = window ? null) ->
 			else
 				@first()?.html() ? ''
 		
+		indexOf: Array::indexOf
+		
 		insertAfter: ->
 			elm.insertAfter arguments... for elm in @
 			@
@@ -971,7 +974,13 @@ do (window = window ? null) ->
 				@
 				
 			else
-				parseFloat @css 'height'
+				if @is ':visible'
+					@__dom.offsetHeight
+				
+				else
+					h = parseFloat @css 'height'
+					if isNaN h then return 0
+					h
 		
 		hide: ->
 			@css 'display', 'none'
@@ -1153,11 +1162,7 @@ do (window = window ? null) ->
 				m = parseFloat @css 'margin-bottom'
 				if not isNaN m then add += m
 			
-			if @is ':visible'
-				@__dom.offsetHeight + add
-			
-			else
-				SIMElement::height.call(@) + add
+			SIMElement::height.call(@) + add
 		
 		outerWidth: (margin) ->
 			add = 0
@@ -1167,11 +1172,7 @@ do (window = window ? null) ->
 				m = parseFloat @css 'margin-right'
 				if not isNaN m then add += m
 				
-			if @is ':visible'
-				@__dom.offsetWidth + add
-			
-			else
-				SIMElement::width.call(@) + add
+			SIMElement::width.call(@) + add
 		
 		parent: ->
 			if @__dom.parentNode is @__dom.ownerDocument
@@ -1306,7 +1307,13 @@ do (window = window ? null) ->
 				@
 				
 			else
-				parseFloat @css 'width'
+				if @is ':visible'
+					@__dom.offsetWidth
+				
+				else
+					w = parseFloat @css 'width'
+					if isNaN w then return 0
+					w
 			
 		write: (text) ->
 			if (/&#?([a-z0-9]+);/gi).test text
@@ -1454,7 +1461,17 @@ do (window = window ? null) ->
 			
 		NAMESPACE[name] = klass
 		@
+	
+	sim.css = (name, style) ->
+		if not CSS_SHEET?
+			elm = document.createElement 'style'
+			document.head.appendChild elm
+			CSS_SHEET = elm.sheet
 
+		CSS_SHEET.insertRule "#{name} {#{("#{key}: #{value}" for key, value of style).join '; '}}", 0
+		
+		null
+	
 	sim.SIMElement = SIMElement
 	sim.SIMArray = SIMArray
 	sim.SIMDocument = SIMDocument
