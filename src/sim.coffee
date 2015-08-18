@@ -1396,7 +1396,7 @@ do (window = window ? null) ->
 	
 	Object.defineProperties SIMWindow.prototype,
 		devicePixelRatio:
-			get: -> @__dom.devicePixelRatio
+			get: -> @__dom.devicePixelRatio ? 1
 
 		document:
 			get: -> sim document
