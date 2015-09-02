@@ -384,6 +384,10 @@ do (window = window ? null) ->
 			elm.addClass arguments... for elm in @
 			@
 		
+		appendTo: ->
+			elm.appendTo arguments... for elm in @
+			@
+		
 		attr: (key, value) ->
 			if arguments.length is 1
 				@first()?.attr key
@@ -583,6 +587,10 @@ do (window = window ? null) ->
 			
 			@
 		
+		prependTo: ->
+			elm.prependTo arguments... for elm in @
+			@
+		
 		prev: ->
 			arr = new SIMArray
 			for elm in @
@@ -636,6 +644,9 @@ do (window = window ? null) ->
 					arr.push @[start + i]
 			
 			arr
+		
+		sort: ->
+			new SIMArray Array::sort.apply @, arguments
 		
 		splice: ->
 			@
@@ -1472,6 +1483,16 @@ do (window = window ? null) ->
 		
 		null
 	
+	sim.parse = (html) ->
+		wrapper = document.createElement 'div'
+		wrapper.innerHTML = html
+		sim.array.apply sim, wrapper.childNodes
+	
+	sim.render = (next) ->
+		container = sim.div()
+		next.call container
+		container.html()
+	
 	sim.SIMElement = SIMElement
 	sim.SIMArray = SIMArray
 	sim.SIMDocument = SIMDocument
@@ -1502,7 +1523,13 @@ do (window = window ? null) ->
 					if not JQUERY?
 						throw new Error "jQuery is required in order to use '#{name}' method."
 					
-					window.jQuery(@__dom)[name] arguments...
+					@toJquery()[name] arguments...
+				
+				SIMArray::[name] = ->
+					if not JQUERY?
+						throw new Error "jQuery is required in order to use '#{name}' method."
+					
+					@toJquery()[name] arguments...
 		
 		SIMBase::toJquery = ->
 			if not JQUERY
