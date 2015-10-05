@@ -877,7 +877,18 @@ do (window = window ? null) ->
 			simArray Array::slice.call @__dom.childNodes
 		
 		clone: (withDataAndEvents) ->
-			sim @__dom.cloneNode true
+			elm = sim @__dom.cloneNode true
+			
+			if withDataAndEvents
+				for event, o of @__handlers
+					for fn in o.original ? []
+						elm.on event, fn
+				
+					for selector, oo of o.selector
+						for fn in oo.original ? []
+							elm.on event, selector, fn
+			
+			elm
 		
 		data: (key, value) ->
 			if arguments.length is 0
