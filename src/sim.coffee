@@ -662,6 +662,10 @@ do (window = window ? null) ->
 		toArray: ->
 			(elm for elm in @)
 		
+		toggleClass: ->
+			elm.toggleClass arguments... for elm in @
+			@
+		
 		toString: ->
 			(elm.toString() for elm in @).join ''
 		
