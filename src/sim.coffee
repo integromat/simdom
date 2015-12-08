@@ -12,6 +12,7 @@ do (window = window ? null) ->
 	NODE = not window?
 	JQUERY = window?.jQuery?
 	FF = navigator?.userAgent.toLowerCase().indexOf('firefox') > -1
+	WHEEL_EVENT = `window ? "onwheel" in window.document.createElement("div") ? "wheel" : window.document.onmousewheel !== undefined ? "mousewheel" : "DOMMouseScroll" : "wheel"`
 	TEMP_ID = 0
 	TAGS = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'textarea',  'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr']
 	JQUERY_POLYFILLS = ['animate', 'stop', 'slideDown', 'slideUp', 'slideToggle', 'fadeIn', 'fadeOut', 'fadeToggle']
@@ -1073,37 +1074,49 @@ do (window = window ? null) ->
 			if index is -1 then return simArray()
 			filter simArray(Array::slice.call(@__dom.parentNode.childNodes, index + 1)), selector
 		
-		off: (event, selector, handler) ->
+		off: (events, selector, handler) ->
 			if 'function' is typeof selector
 				handler = selector
 				selector = undefined
 			
 			fn = handler
-			if selector
-				index = @__handlers[event]?.selector[selector]?.original.indexOf handler
-				if not index? or index is -1
-					return @ # handler doesn't exist
-				
-				fn = @__handlers[event].selector[selector].temporary[index]
-				
-				@__handlers[event].selector[selector].original.splice index, 1
-				@__handlers[event].selector[selector].temporary.splice index, 1
 			
-			else
-				index = @__handlers[event]?.original.indexOf handler
-				if not index? or index is -1
-					return @ # handler doesn't exist
+			for event in events.split ' '
+				if FF
+					if event is 'focusin'
+						event = 'focus'
+					
+					else if event is 'focusout'
+						event = 'blur'
 				
-				fn = @__handlers[event].temporary[index]
-				
-				@__handlers[event].original.splice index, 1
-				@__handlers[event].temporary.splice index, 1
+				if event in ['wheel', 'mousewheel']
+					event = WHEEL_EVENT
 			
-			if BOOTSTRAP_EVENT.test event
-				@toJquery().off event, fn
+				if selector
+					index = @__handlers[event]?.selector[selector]?.original.indexOf handler
+					if not index? or index is -1
+						return @ # handler doesn't exist
+					
+					fn = @__handlers[event].selector[selector].temporary[index]
+					
+					@__handlers[event].selector[selector].original.splice index, 1
+					@__handlers[event].selector[selector].temporary.splice index, 1
 				
-			else
-				@__dom.removeEventListener event, fn
+				else
+					index = @__handlers[event]?.original.indexOf handler
+					if not index? or index is -1
+						return @ # handler doesn't exist
+					
+					fn = @__handlers[event].temporary[index]
+					
+					@__handlers[event].original.splice index, 1
+					@__handlers[event].temporary.splice index, 1
+				
+				if BOOTSTRAP_EVENT.test event
+					@toJquery().off event, fn
+					
+				else
+					@__dom.removeEventListener event, fn
 
 			@
 		
@@ -1132,13 +1145,17 @@ do (window = window ? null) ->
 			capture = false
 			
 			for event in events.split ' '
-				if event is 'focusin' and FF
-					event = 'focus'
-					capture = true
+				if FF
+					if event is 'focusin'
+						event = 'focus'
+						capture = true
+					
+					else if event is 'focusout'
+						event = 'blur'
+						capture = true
 				
-				else if event is 'focusout' and FF
-					event = 'blur'
-					capture = true
+				if event in ['wheel', 'mousewheel']
+					event = WHEEL_EVENT
 				
 				@__handlers[event] ?= original: [], temporary: [], selector: Object.create null
 				
@@ -1155,7 +1172,7 @@ do (window = window ? null) ->
 						target = sim e.target
 						if target.is selector
 							ret = handler.apply target, arguments
-							if ret is false then e.preventDefault()
+							if ret is false then e.preventDefault?()
 							return ret
 						
 						closest = target.closest selector
@@ -1180,8 +1197,11 @@ do (window = window ? null) ->
 							eventType = if jqevt then "#{e.type}#{if e.namespace then ".#{e.namespace}" else ''}" else e.type
 							SIMElement::off.call self, eventType, selector, handler
 						
+						if e.type is 'DOMMouseScroll'
+							e.wheelDelta = e.detail * -20
+						
 						ret = handler.call self, e
-						if ret is false then event.preventDefault?()
+						if ret is false then e.preventDefault?()
 						return ret
 					
 					@__handlers[event].original.push handler
