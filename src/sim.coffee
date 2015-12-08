@@ -11,6 +11,7 @@ do (window = window ? null) ->
 	
 	NODE = not window?
 	JQUERY = window?.jQuery?
+	FF = navigator?.userAgent.toLowerCase().indexOf('firefox') > -1
 	TEMP_ID = 0
 	TAGS = ['a', 'abbr', 'address', 'area', 'article', 'aside', 'audio', 'b', 'base', 'bdi', 'bdo', 'blockquote', 'body', 'br', 'button', 'canvas', 'caption', 'cite', 'code', 'col', 'colgroup', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'div', 'dl', 'dt', 'em', 'embed', 'fieldset', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header', 'hr', 'i', 'iframe', 'img', 'input', 'ins', 'kbd', 'keygen', 'label', 'legend', 'li', 'link', 'main', 'map', 'mark', 'menu', 'menuitem', 'meta', 'meter', 'nav', 'noscript', 'object', 'ol', 'optgroup', 'option', 'output', 'p', 'param', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'script', 'section', 'select', 'small', 'source', 'span', 'strong', 'style', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'textarea',  'tfoot', 'th', 'thead', 'time', 'title', 'tr', 'track', 'u', 'ul', 'var', 'video', 'wbr']
 	JQUERY_POLYFILLS = ['animate', 'stop', 'slideDown', 'slideUp', 'slideToggle', 'fadeIn', 'fadeOut', 'fadeToggle']
@@ -81,19 +82,33 @@ do (window = window ? null) ->
 		module.exports = sim
 		window = require './dom'
 		sim.window = window
-		sim.require = (file, done) ->
-			file = require('path').resolve process.cwd(), file
-			sim(window.document.body).script "[src=\"#{file}\"]", ->
-				_error = (err) =>
-					@off 'load', _load
-					done? err
-					
-				_load = ->
-					@off 'error', _error
-					done? null
-					
-				@once 'error', _error
-				@once 'load', _load
+		sim.require = (files, done) ->
+			if 'string' is typeof files
+				files = [files]
+			
+			next = ->
+				file = require('path').resolve process.cwd(), files.shift()
+				sim(window.document.body).script "[src=\"#{file}\"]", ->
+					_error = (err) =>
+						@off 'load', _load
+						
+						done? err
+						
+					_load = ->
+						@off 'error', _error
+						
+						JQUERY = window?.jQuery?
+						
+						if files.length
+							next()
+						
+						else
+							done? null
+						
+					@once 'error', _error
+					@once 'load', _load
+				
+			next()
 
 	window.sim = sim
 	window.document.addEventListener 'DOMContentLoaded', -> sim.ready()
@@ -732,7 +747,7 @@ do (window = window ? null) ->
 			if tag instanceof SIMElement
 				super tag.__dom
 			
-			else if JQUERY and tag instanceof jQuery
+			else if JQUERY and tag instanceof window.jQuery
 				super tag[0]
 			
 			else if tag.nodeName
@@ -1114,8 +1129,17 @@ do (window = window ? null) ->
 			
 			self = @
 			jqevt = false
+			capture = false
 			
 			for event in events.split ' '
+				if event is 'focusin' and FF
+					event = 'focus'
+					capture = true
+				
+				else if event is 'focusout' and FF
+					event = 'blur'
+					capture = true
+				
 				@__handlers[event] ?= original: [], temporary: [], selector: Object.create null
 				
 				if selector
@@ -1123,21 +1147,21 @@ do (window = window ? null) ->
 					if index? and index isnt -1
 						return @ # handler already exists
 						
-					fn = (event) ->
+					fn = (e) ->
 						if _once
-							eventType = if jqevt then "#{event.type}#{if event.namespace then ".#{event.namespace}" else ''}" else event.type
+							eventType = if jqevt then "#{e.type}#{if e.namespace then ".#{e.namespace}" else ''}" else e.type
 							SIMElement::off.call self, eventType, selector, handler
 							
-						target = sim event.target
+						target = sim e.target
 						if target.is selector
 							ret = handler.apply target, arguments
-							if ret is false then event.preventDefault()
+							if ret is false then e.preventDefault()
 							return ret
 						
 						closest = target.closest selector
 						if closest
 							ret = handler.apply closest, arguments
-							if ret is false then event.preventDefault()
+							if ret is false then e.preventDefault?()
 							return ret
 						
 						null
@@ -1151,13 +1175,13 @@ do (window = window ? null) ->
 					if index? and index isnt -1
 						return @ # handler already exists
 					
-					fn = (event) ->
+					fn = (e) ->
 						if _once
-							eventType = if jqevt then "#{event.type}#{if event.namespace then ".#{event.namespace}" else ''}" else event.type
+							eventType = if jqevt then "#{e.type}#{if e.namespace then ".#{e.namespace}" else ''}" else e.type
 							SIMElement::off.call self, eventType, selector, handler
-
-						ret = handler.call self, event
-						if ret is false then event.preventDefault()
+						
+						ret = handler.call self, e
+						if ret is false then event.preventDefault?()
 						return ret
 					
 					@__handlers[event].original.push handler
@@ -1168,7 +1192,7 @@ do (window = window ? null) ->
 					@toJquery().on event, fn
 					
 				else
-					@__dom.addEventListener event, fn
+					@__dom.addEventListener event, fn, capture
 	
 			@
 		
@@ -1382,6 +1406,7 @@ do (window = window ? null) ->
 		appendTo: SIMElement::appendTo
 		before: SIMElement::before
 		detach: SIMElement::detach
+		hasClass: -> false
 		prependTo: SIMElement::prependTo
 		insertBefore: SIMElement::insertBefore
 		insertAfter: SIMElement::insertAfter
@@ -1530,7 +1555,7 @@ do (window = window ? null) ->
 		# jQuery integration
 		
 		if JQUERY
-			sim.ajax = jQuery.ajax.bind jQuery
+			sim.ajax = window.jQuery.ajax.bind jQuery
 			
 		for name in JQUERY_POLYFILLS
 			do (name) ->
