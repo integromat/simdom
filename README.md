@@ -25,7 +25,7 @@ sim(document.body).do ->
 		@h1().text "Welcome to my Blog"
 	
 	@section ->
-		for aricle in articles
+		for article in articles
 			@article ->
 				@h1().text article.title
 				@p().text article.content
