@@ -36,6 +36,8 @@ sim(document.body).do ->
 
 ### Server-side Usage
 
+**IMPORTANT: Requires Node.js 4.0+**
+
 ```coffeescript
 sim = require 'simdom'
 
