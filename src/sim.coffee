@@ -1142,7 +1142,7 @@ do (window = window ? null) ->
 			
 			self = @
 			jqevt = false
-			capture = false
+			capture = undefined
 			
 			for event in events.split ' '
 				if FF
