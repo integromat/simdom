@@ -958,6 +958,9 @@ do (window = window ? null) ->
 		###
 		
 		emit: (name, options = {}) ->
+			if FF and @__dom.disabled
+				return # https://bugzilla.mozilla.org/show_bug.cgi?id=889376
+			
 			if BOOTSTRAP_EVENT.test name
 				jq = @toJquery()
 				jq.trigger.apply jq, arguments
@@ -975,6 +978,8 @@ do (window = window ? null) ->
 					throw new Error "Invalid arguments."
 				
 				@__dom.dispatchEvent event
+			
+			@
 		
 		empty: ->
 			while @__dom.hasChildNodes()
