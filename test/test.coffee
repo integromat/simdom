@@ -335,6 +335,10 @@ describe 'basic test suite', ->
 		assert.strictEqual sim('@custom-component').first(), dom
 		assert.strictEqual sim('body > @custom-component').first(), dom
 		assert.strictEqual sim('body').children('@custom-component').first(), dom
+	
+	it.skip 'should set and get cookie', ->
+		sim.cookies.set 'mycookie', 1337
+		assert.strictEqual sim.cookies.get('mycookie'), '1337'
 
 describe 'basic svg test suite', ->
 	it 'should create basic svg dom #1', ->

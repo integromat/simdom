@@ -40,10 +40,10 @@ do (window = window ? null) ->
 		if 'string' is typeof selector
 			# only one possilbe result when #<id> is used as selector
 			if selector in ['html', 'body'] or (/^#([a-z]+[_a-z0-9-]*)$/i).test selector
-				return sim query document, selector
+				return sim query window.document, selector
 			
 			else
-				return simArray queryAll document, selector
+				return simArray queryAll window.document, selector
 		
 		if Array.isArray selector then return new SIMArray selector
 		if selector.nodeType is 3 then return new SIMText selector
@@ -756,9 +756,9 @@ do (window = window ? null) ->
 			
 			else if 'string' is typeof tag
 				if @constructor.NS?
-					super document.createElementNS @constructor.NS, tag
+					super window.document.createElementNS @constructor.NS, tag
 				else
-					super document.createElement tag
+					super window.document.createElement tag
 			
 			else
 				throw new Error "Invalid arguments."
@@ -1416,10 +1416,10 @@ do (window = window ? null) ->
 	class SIMText extends SIMBase
 		constructor: (text) ->
 			if not text?
-				super document.createTextNode ''
+				super window.document.createTextNode ''
 			
 			else if 'string' is typeof text
-				super document.createTextNode text
+				super window.document.createTextNode text
 			
 			else if text.nodeType is 3
 				super text
@@ -1447,18 +1447,18 @@ do (window = window ? null) ->
 	
 	class SIMDocument extends SIMBase
 		emit: SIMElement::emit
-		height: -> document.documentElement.offsetHeight
+		height: -> window.document.documentElement.offsetHeight
 		inspect: -> "[SIMDocument]"
 		on: SIMElement::on
 		once: SIMElement::once
 		off: SIMElement::off
 		toString: -> "<!DOCTYPE html>#{@__dom.documentElement.outerHTML}"
 		trigger: SIMElement::trigger
-		width: -> document.documentElement.offsetWidth
+		width: -> window.document.documentElement.offsetWidth
 	
 	class SIMWindow extends SIMBase
 		emit: SIMElement::emit
-		height: -> document.documentElement.clientHeight
+		height: -> window.document.documentElement.clientHeight
 		inspect: -> "[SIMWindow]"
 		on: SIMElement::on
 		once: SIMElement::once
@@ -1468,14 +1468,14 @@ do (window = window ? null) ->
 		scrollTop: -> @__dom.pageYOffset
 		toString: -> @inspect()
 		trigger: SIMElement::trigger
-		width: -> document.documentElement.clientWidth
+		width: -> window.document.documentElement.clientWidth
 	
 	Object.defineProperties SIMWindow.prototype,
 		devicePixelRatio:
 			get: -> @__dom.devicePixelRatio ? 1
 
 		document:
-			get: -> sim document
+			get: -> sim window.document
 
 		history:
 			get: -> window.history
@@ -1540,16 +1540,44 @@ do (window = window ? null) ->
 	
 	sim.css = (name, style) ->
 		if not CSS_SHEET?
-			elm = document.createElement 'style'
-			document.head.appendChild elm
+			elm = window.document.createElement 'style'
+			window.document.head.appendChild elm
 			CSS_SHEET = elm.sheet
 
 		CSS_SHEET.insertRule "#{name} {#{("#{key}: #{value}" for key, value of style).join '; '}}", 0
 		
 		null
 	
+	sim.cookies =
+		get: (name) ->
+			name += "="
+			ca = window.document.cookie.split ';'
+			
+			for c in ca
+				while ' ' is c.charAt 0
+					c = c.substring 1, c.length
+					
+				if 0 is c.indexOf name then return c.substring name.length, c.length
+
+			null
+		
+		set: (name, value, minutes) ->
+			if not value?
+				value = ""
+				minutes = -1
+			
+			if minutes
+				date = new Date()
+				date.setTime date.getTime() + minutes * 60 * 1000
+				expires = "; expires=#{date.toGMTString()}"
+			
+			else
+				expires = ""
+			
+			window.document.cookie = "#{name}=#{value}#{expires}; path=/"
+	
 	sim.parse = (html) ->
-		wrapper = document.createElement 'div'
+		wrapper = window.document.createElement 'div'
 		wrapper.innerHTML = html
 		sim.array.apply sim, wrapper.childNodes
 	
