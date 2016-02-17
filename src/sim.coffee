@@ -971,7 +971,7 @@ do (window = window ? null) ->
 					try
 						event = new window[klass] name, options
 					catch
-						event = @__dom.ownerDocument.createEvent klass
+						event = (@__dom.ownerDocument ? @__dom.document).createEvent klass
 						ALTERNATIVE_EVENT_CONSTRUCTORS[klass].call event, name, options
 				
 				else
