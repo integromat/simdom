@@ -324,6 +324,14 @@ describe 'basic test suite', ->
 		dom.emit 'resize'
 		assert.strictEqual ticks, 1
 	
+	it.skip 'should handle events #9', ->
+		dom = sim.div ->
+			@on 'resize', -> throw new Error "..."
+			@on 'resize', -> throw new Error "..."
+		
+		dom.off()
+		dom.emit 'resize'
+	
 	it 'should create a custom component #1', ->
 		class SIMElementExtended extends sim.SIMElement
 		sim.registerComponent 'custom-component', SIMElementExtended

@@ -11,7 +11,7 @@
     "jquery",
     "browser"
   ],
-  "version": "0.2.1",
+  "version": "0.2.2",
   "main": "lib/sim.js",
   "repository": {
     "type": "git",
@@ -19,7 +19,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "jsdom": "^7.0.2"
+    "jsdom": "^9.8.3"
   },
   "devDependencies": {
     "coffee-script": "^1.9.3",

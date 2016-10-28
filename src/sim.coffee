@@ -259,6 +259,10 @@ do (window = window ? null) ->
 		if conditions.length is 0
 			return true
 		
+		# text cant match any of following
+		if elm instanceof SIMText
+			return false
+		
 		for condition in conditions
 			if condition.tag?
 				if condition.tag is '*'
@@ -1085,6 +1089,7 @@ do (window = window ? null) ->
 				selector = undefined
 			
 			fn = handler
+			events ?= Object.keys(@__handlers).join ' '
 			
 			for event in events.split ' '
 				if FF
@@ -1430,6 +1435,7 @@ do (window = window ? null) ->
 		after: SIMElement::after
 		appendTo: SIMElement::appendTo
 		before: SIMElement::before
+		closest: -> null
 		detach: SIMElement::detach
 		hasClass: -> false
 		prependTo: SIMElement::prependTo
@@ -1446,9 +1452,11 @@ do (window = window ? null) ->
 		text: SIMElement::text
 	
 	class SIMDocument extends SIMBase
+		closest: -> null
 		emit: SIMElement::emit
 		height: -> window.document.documentElement.offsetHeight
 		inspect: -> "[SIMDocument]"
+		is: (selector) -> selector is 'document'
 		on: SIMElement::on
 		once: SIMElement::once
 		off: SIMElement::off
@@ -1457,9 +1465,11 @@ do (window = window ? null) ->
 		width: -> window.document.documentElement.offsetWidth
 	
 	class SIMWindow extends SIMBase
+		closest: -> null
 		emit: SIMElement::emit
 		height: -> window.document.documentElement.clientHeight
 		inspect: -> "[SIMWindow]"
+		is: -> false
 		on: SIMElement::on
 		once: SIMElement::once
 		off: SIMElement::off
