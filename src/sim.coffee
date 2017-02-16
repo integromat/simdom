@@ -720,8 +720,12 @@ do (window = window ? null) ->
 			Object.defineProperty @, '__data',
 				value: Object.create null
 			
-			Object.defineProperty dom, '__sim__',
-				value: @
+			try
+				Object.defineProperty dom, '__sim__',
+					value: @
+				
+			catch ex
+				# this fail sometimes on firefox for unknown reason
 	
 	Object.defineProperties SIMBase.prototype,
 		nodeType:
