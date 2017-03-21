@@ -139,7 +139,11 @@ do (window = window ? null) ->
 	
 			selector = "##{dom.getAttribute 'id'} #{selector.substr 7}"
 		
-		res = dom[method] selector
+		try
+			res = dom[method] selector
+		catch ex
+			console.error "simdom query '#{selector}' failed: #{ex.message}"
+			return if method is 'querySelectorAll' then [] else null
 		
 		if tempId
 			dom.removeAttribute 'id'
